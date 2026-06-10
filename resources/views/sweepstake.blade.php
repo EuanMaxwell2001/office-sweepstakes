@@ -607,6 +607,218 @@
             padding: 5px 14px;
         }
 
+        /* ── BATTLE MODAL ── */
+        .battle-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(6px);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .battle-modal {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 32px 80px rgba(0,0,0,0.8);
+        }
+
+        .battle-bg {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #080f1f 0%, #0a0a0a 50%, #1a0808 100%);
+        }
+
+        .battle-bg::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg,
+                rgba(0,100,255,0.08) 0%,
+                transparent 50%,
+                rgba(255,40,40,0.08) 100%
+            );
+        }
+
+        .battle-bg::after {
+            content: '';
+            position: absolute;
+            top: 0; bottom: 0;
+            left: 50%; width: 2px;
+            background: linear-gradient(to bottom,
+                transparent, rgba(255,255,255,0.15), transparent
+            );
+            transform: skewX(-8deg);
+        }
+
+        .battle-inner {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 0;
+            padding: 32px 24px 28px;
+        }
+
+        .battle-side {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .battle-side.right { flex-direction: column; }
+
+        .battle-avatar-wrap {
+            position: relative;
+        }
+
+        .battle-avatar {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid rgba(255,255,255,0.15);
+            display: block;
+        }
+
+        .battle-side.left .battle-avatar {
+            border-color: rgba(60,140,255,0.5);
+            box-shadow: 0 0 24px rgba(60,140,255,0.3), 0 0 0 6px rgba(60,140,255,0.08);
+        }
+
+        .battle-side.right .battle-avatar {
+            border-color: rgba(255,60,60,0.5);
+            box-shadow: 0 0 24px rgba(255,60,60,0.3), 0 0 0 6px rgba(255,60,60,0.08);
+        }
+
+        .battle-flag {
+            width: 40px;
+            height: 28px;
+            object-fit: cover;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        .battle-person {
+            font-family: 'Anton', sans-serif;
+            font-size: 15px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text);
+            text-align: center;
+        }
+
+        .battle-team {
+            font-size: 11px;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .battle-side.left .battle-team { color: rgba(120,180,255,0.8); }
+        .battle-side.right .battle-team { color: rgba(255,120,120,0.8); }
+
+        .battle-vs {
+            font-family: 'Anton', sans-serif;
+            font-size: 42px;
+            letter-spacing: 0.04em;
+            text-align: center;
+            padding: 0 12px;
+            background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.4) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            filter: drop-shadow(0 0 20px rgba(255,255,255,0.3));
+        }
+
+        .battle-footer {
+            position: relative;
+            z-index: 1;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .battle-match-info {
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .battle-kickoff {
+            font-family: 'Anton', sans-serif;
+            font-size: 18px;
+            color: var(--green);
+            letter-spacing: 0.04em;
+        }
+
+        .battle-close {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            z-index: 2;
+            background: rgba(255,255,255,0.08);
+            border: none;
+            color: var(--muted);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .battle-close:hover { background: rgba(255,255,255,0.15); color: var(--text); }
+
+        /* animations */
+        @keyframes battleBackdropIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        @keyframes battleSlideLeft {
+            from { opacity: 0; transform: translateX(-40px) scale(0.85); }
+            to   { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        @keyframes battleSlideRight {
+            from { opacity: 0; transform: translateX(40px) scale(0.85); }
+            to   { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        @keyframes battleVsPop {
+            0%   { opacity: 0; transform: scale(0.3) rotate(-15deg); }
+            65%  { transform: scale(1.15) rotate(4deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+        @keyframes battleModalIn {
+            from { opacity: 0; transform: scale(0.88) translateY(16px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .battle-backdrop { animation: battleBackdropIn 0.2s ease forwards; }
+        .battle-modal    { animation: battleModalIn 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+        .battle-side.left  { animation: battleSlideLeft  0.35s cubic-bezier(0.34,1.56,0.64,1) 0.1s both; }
+        .battle-side.right { animation: battleSlideRight 0.35s cubic-bezier(0.34,1.56,0.64,1) 0.1s both; }
+        .battle-vs         { animation: battleVsPop      0.4s cubic-bezier(0.34,1.56,0.64,1) 0.2s both; }
+
+        .match-card.upcoming-card { cursor: pointer; }
+
         /* ── RESPONSIVE ── */
         @media (max-width: 640px) {
             .hero { padding: 40px 0 32px; }
@@ -794,9 +1006,19 @@
 <script>
 function sweepstake() {
     return {
+        battle: null,
+
         init() {
             this.animateCards();
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') this.battle = null;
+            });
         },
+
+        openBattle(data) {
+            this.battle = data;
+        },
+
         animateCards() {
             const cards = document.querySelectorAll('.person-card');
             const observer = new IntersectionObserver((entries) => {
@@ -816,6 +1038,43 @@ function sweepstake() {
     };
 }
 </script>
+
+{{-- ── BATTLE MODAL ── --}}
+<template x-teleport="body">
+    <div x-show="battle" class="battle-backdrop" @click.self="battle = null" style="display:none;">
+        <div class="battle-modal" x-show="battle" @click.stop>
+            <button class="battle-close" @click="battle = null">✕</button>
+
+            <div class="battle-bg"></div>
+
+            <div class="battle-inner" x-show="battle">
+                {{-- Left / Home --}}
+                <div class="battle-side left">
+                    <img class="battle-avatar" :src="battle?.homeAvatar" :alt="battle?.homePerson">
+                    <img class="battle-flag" :src="battle?.homeFlag" :alt="battle?.homeTeam" onerror="this.style.display='none'">
+                    <div class="battle-person" x-text="battle?.homePerson ?? '?'"></div>
+                    <div class="battle-team" x-text="battle?.homeTeam"></div>
+                </div>
+
+                <div class="battle-vs">VS</div>
+
+                {{-- Right / Away --}}
+                <div class="battle-side right">
+                    <img class="battle-avatar" :src="battle?.awayAvatar" :alt="battle?.awayPerson">
+                    <img class="battle-flag" :src="battle?.awayFlag" :alt="battle?.awayTeam" onerror="this.style.display='none'">
+                    <div class="battle-person" x-text="battle?.awayPerson ?? '?'"></div>
+                    <div class="battle-team" x-text="battle?.awayTeam"></div>
+                </div>
+            </div>
+
+            <div class="battle-footer">
+                <span class="battle-match-info" x-text="battle?.stage ?? 'Group Stage'"></span>
+                <span class="battle-kickoff" x-text="battle?.kickoff"></span>
+                <span class="battle-match-info" x-text="battle?.venue"></span>
+            </div>
+        </div>
+    </div>
+</template>
 
 </body>
 </html>

@@ -2,13 +2,31 @@
     $homeEntry = $sweepstakeTeams->get(strtolower($match->home_team));
     $awayEntry = $sweepstakeTeams->get(strtolower($match->away_team));
 
-    // Flag: prefer ESPN's CDN url, fall back to our flagcdn lookup
     $homeFlag = $match->home_flag ?: ($homeEntry['flag_url'] ?? null);
     $awayFlag = $match->away_flag ?: ($awayEntry['flag_url'] ?? null);
 
-    $isToday = $isToday ?? $match->match_date?->isToday();
+    $isToday    = $isToday ?? $match->match_date?->isToday();
+    $isUpcoming = ! $match->isFinished() && ! $match->isLive();
+
+    $battleData = $isUpcoming ? json_encode([
+        'homeTeam'   => $match->home_team,
+        'awayTeam'   => $match->away_team,
+        'homeFlag'   => $homeFlag,
+        'awayFlag'   => $awayFlag,
+        'homePerson' => $homeEntry['person'] ?? null,
+        'awayPerson' => $awayEntry['person'] ?? null,
+        'homeAvatar' => $homeEntry['avatar_url'] ?? 'https://ui-avatars.com/api/?name=' . urlencode($match->home_team) . '&background=0d1421&color=ffffff&size=128',
+        'awayAvatar' => $awayEntry['avatar_url'] ?? 'https://ui-avatars.com/api/?name=' . urlencode($match->away_team) . '&background=1a0808&color=ffffff&size=128',
+        'stage'      => $match->stage,
+        'venue'      => $match->venue,
+        'kickoff'    => $match->match_date?->format('H:i'),
+    ]) : 'null';
 @endphp
-<div class="match-card {{ $match->isLive() ? 'live' : ($isToday ? 'today' : '') }}">
+
+<div
+    class="match-card {{ $match->isLive() ? 'live' : ($isToday ? 'today' : '') }} {{ $isUpcoming ? 'upcoming-card' : '' }}"
+    @if($isUpcoming) @click="openBattle({{ $battleData }})" @endif
+>
     <div class="match-meta">
         <span class="match-stage">{{ $match->stage ?? 'Group Stage' }}</span>
         <span class="match-date">
@@ -25,7 +43,6 @@
     </div>
 
     <div class="match-teams">
-        {{-- Home team --}}
         <div class="match-team">
             @if($homeFlag)
             <img class="match-team-flag" src="{{ $homeFlag }}" alt="{{ $match->home_team }}" loading="lazy" onerror="this.style.display='none'">
@@ -44,7 +61,6 @@
         <div class="match-vs">vs</div>
         @endif
 
-        {{-- Away team --}}
         <div class="match-team away">
             @if($awayFlag)
             <img class="match-team-flag" src="{{ $awayFlag }}" alt="{{ $match->away_team }}" loading="lazy" onerror="this.style.display='none'">
@@ -55,4 +71,5 @@
             @endif
         </div>
     </div>
+
 </div>

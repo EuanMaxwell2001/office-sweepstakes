@@ -33,12 +33,13 @@ class SweepstakeController extends Controller
             'colombia'               => 'colombia',
         ];
 
-        // Build a lookup: lowercase team name → [person, flag_url]
+        // Build a lookup: lowercase team name → [person, flag_url, avatar_url]
         $sweepstakeTeams = $people->flatMap(function ($person) {
             return $person->teams->map(fn ($team) => [
-                'key'      => strtolower($team->name),
-                'person'   => $person->name,
-                'flag_url' => $team->flag_url,
+                'key'        => strtolower($team->name),
+                'person'     => $person->name,
+                'flag_url'   => $team->flag_url,
+                'avatar_url' => $person->avatar_url,
             ]);
         })->keyBy('key');
 
