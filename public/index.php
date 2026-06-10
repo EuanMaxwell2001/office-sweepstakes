@@ -5,6 +5,11 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
+// Polyfill for hosts that disable ignore_user_abort()
+if (! function_exists('ignore_user_abort')) {
+    function ignore_user_abort(bool $enable = false): int { return 0; }
+}
+
 // Determine if the application is in maintenance mode...
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
     require $maintenance;
