@@ -5,9 +5,15 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
-// Polyfill for hosts that disable ignore_user_abort()
+// Polyfills for hosts that disable certain PHP functions
 if (! function_exists('ignore_user_abort')) {
     function ignore_user_abort(bool $enable = false): int { return 0; }
+}
+if (! function_exists('tmpfile')) {
+    function tmpfile() {
+        $path = tempnam(sys_get_temp_dir(), 'php');
+        return fopen($path, 'r+');
+    }
 }
 
 // Determine if the application is in maintenance mode...
