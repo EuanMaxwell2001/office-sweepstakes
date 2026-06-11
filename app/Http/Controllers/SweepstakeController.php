@@ -61,15 +61,82 @@ class SweepstakeController extends Controller
         $recentMatches = FootballMatch::finished()
             ->whereDate('match_date', '<', today())
             ->orderBy('match_date', 'desc')
-            ->limit(8)
             ->get();
+
+        $knownTeams = $sweepstakeTeams->keys()->all();
 
         $upcomingMatches = FootballMatch::upcoming()
             ->whereDate('match_date', '>', today())
+            ->whereIn(\DB::raw('LOWER(home_team)'), $knownTeams)
+            ->whereIn(\DB::raw('LOWER(away_team)'), $knownTeams)
             ->orderBy('match_date')
-            ->limit(48)
             ->get();
 
-        return view('sweepstake', compact('people', 'liveMatches', 'todayMatches', 'recentMatches', 'upcomingMatches', 'sweepstakeTeams'));
+        $totalMatches = $liveMatches->count() + $todayMatches->count() + $recentMatches->count() + $upcomingMatches->count();
+
+        // Build leaderboard from all finished matches
+        $allFinished = FootballMatch::finished()->get();
+
+        // Reverse alias map: canonical → [aliases...]
+        $canonicalLookup = collect($aliases); // alias → canonical
+
+        $leaderboard = $people->map(function ($person) use ($allFinished, $canonicalLookup) {
+            $teamNames = $person->teams->map(fn($t) => strtolower($t->name))->all();
+
+            // Expand with aliases so ESPN name variants match
+            $allNames = collect($teamNames)->flatMap(function ($name) use ($canonicalLookup) {
+                $extras = $canonicalLookup->filter(fn($canonical) => $canonical === $name)->keys();
+                return collect([$name])->merge($extras);
+            })->unique()->all();
+
+            $wins = 0; $draws = 0; $losses = 0; $goalsFor = 0; $goalsAgainst = 0;
+
+            foreach ($allFinished as $match) {
+                $home = strtolower($match->home_team);
+                $away = strtolower($match->away_team);
+                $isHome = in_array($home, $allNames);
+                $isAway = in_array($away, $allNames);
+
+                if (! $isHome && ! $isAway) continue;
+
+                if ($isHome) {
+                    $goalsFor     += $match->home_score;
+                    $goalsAgainst += $match->away_score;
+                    if ($match->home_score > $match->away_score)      $wins++;
+                    elseif ($match->home_score === $match->away_score) $draws++;
+                    else                                               $losses++;
+                }
+                if ($isAway) {
+                    $goalsFor     += $match->away_score;
+                    $goalsAgainst += $match->home_score;
+                    if ($match->away_score > $match->home_score)      $wins++;
+                    elseif ($match->away_score === $match->home_score) $draws++;
+                    else                                               $losses++;
+                }
+            }
+
+            $played = $wins + $draws + $losses;
+
+            return [
+                'person'       => $person,
+                'wins'         => $wins,
+                'draws'        => $draws,
+                'losses'       => $losses,
+                'played'       => $played,
+                'goalsFor'     => $goalsFor,
+                'goalsAgainst' => $goalsAgainst,
+                'gd'           => $goalsFor - $goalsAgainst,
+                'points'       => ($wins * 3) + $draws,
+            ];
+        })
+        ->filter(fn($row) => ! $row['person']->is_office)
+        ->sortBy([
+            fn($a, $b) => $b['points'] <=> $a['points'],
+            fn($a, $b) => $b['gd'] <=> $a['gd'],
+            fn($a, $b) => $b['goalsFor'] <=> $a['goalsFor'],
+        ])
+        ->values();
+
+        return view('sweepstake', compact('people', 'liveMatches', 'todayMatches', 'recentMatches', 'upcomingMatches', 'sweepstakeTeams', 'totalMatches', 'leaderboard'));
     }
 }

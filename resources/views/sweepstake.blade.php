@@ -865,7 +865,7 @@
             </div>
             @else
             <div class="hero-stat">
-                <span class="hero-stat-val">{{ $recentMatches->count() + $upcomingMatches->count() }}</span>
+                <span class="hero-stat-val">{{ $totalMatches }}</span>
                 <span class="hero-stat-label">Matches</span>
             </div>
             @endif
@@ -902,31 +902,132 @@
     </section>
     @endif
 
-    {{-- ── UPCOMING ── --}}
-    @if($upcomingMatches->count())
+    {{-- ── UPCOMING + RESULTS TABS ── --}}
+    @if($upcomingMatches->count() || $recentMatches->count())
     <section class="section">
         <div class="section-header">
-            <h2 class="section-title">Upcoming</h2>
-            <span class="section-badge">{{ $upcomingMatches->count() }} matches</span>
+            <h2 class="section-title">Matches</h2>
+            <div class="tabs" style="margin-bottom:0;">
+                @if($upcomingMatches->count())
+                <button
+                    class="tab-btn"
+                    :class="{ active: matchTab === 'upcoming' }"
+                    @click="matchTab = 'upcoming'"
+                >
+                    Upcoming <span style="opacity:0.5; font-size:11px; margin-left:4px;">{{ $upcomingMatches->count() }}</span>
+                </button>
+                @endif
+                @if($recentMatches->count())
+                <button
+                    class="tab-btn"
+                    :class="{ active: matchTab === 'results' }"
+                    @click="matchTab = 'results'"
+                >
+                    Results <span style="opacity:0.5; font-size:11px; margin-left:4px;">{{ $recentMatches->count() }}</span>
+                </button>
+                @endif
+            </div>
         </div>
-        <div class="match-grid">
-            @foreach($upcomingMatches as $match)
-            @include('partials.match-card', ['match' => $match, 'sweepstakeTeams' => $sweepstakeTeams, 'isToday' => false])
-            @endforeach
+
+        @if($upcomingMatches->count())
+        <div x-show="matchTab === 'upcoming'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0">
+            <div class="match-grid">
+                @foreach($upcomingMatches as $match)
+                @include('partials.match-card', ['match' => $match, 'sweepstakeTeams' => $sweepstakeTeams, 'isToday' => false])
+                @endforeach
+            </div>
         </div>
+        @endif
+
+        @if($recentMatches->count())
+        <div x-show="matchTab === 'results'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0">
+            <div class="match-grid">
+                @foreach($recentMatches as $match)
+                @include('partials.match-card', ['match' => $match, 'sweepstakeTeams' => $sweepstakeTeams])
+                @endforeach
+            </div>
+        </div>
+        @endif
     </section>
     @endif
 
-    {{-- ── RESULTS ── --}}
-    @if($recentMatches->count())
+    {{-- ── LEADERBOARD ── --}}
+    @if($leaderboard->where('played', '>', 0)->count())
     <section class="section">
         <div class="section-header">
-            <h2 class="section-title">Results</h2>
-            <span class="section-badge">{{ $recentMatches->count() }} matches</span>
+            <h2 class="section-title">Leaderboard</h2>
+            <span class="section-badge">Points · GD · Goals</span>
         </div>
-        <div class="match-grid">
-            @foreach($recentMatches as $match)
-            @include('partials.match-card', ['match' => $match, 'sweepstakeTeams' => $sweepstakeTeams])
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            @foreach($leaderboard as $i => $row)
+            @php $person = $row['person']; @endphp
+            <div style="
+                background: var(--surface);
+                border: 1px solid {{ $i === 0 ? 'rgba(245,197,24,0.3)' : 'var(--border)' }};
+                border-radius: 12px;
+                padding: 14px 20px;
+                display: grid;
+                grid-template-columns: 32px 52px 1fr repeat(5, 48px) 56px;
+                align-items: center;
+                gap: 12px;
+                {{ $i === 0 ? 'background: linear-gradient(135deg, rgba(245,197,24,0.06), var(--surface));' : '' }}
+            ">
+                {{-- Rank --}}
+                <div style="font-family:'Anton',sans-serif; font-size:18px; color:{{ $i === 0 ? 'var(--gold)' : 'var(--muted2)' }}; text-align:center;">
+                    {{ $i + 1 }}
+                </div>
+
+                {{-- Avatar --}}
+                <img src="{{ $person->avatar_url }}" alt="{{ $person->name }}"
+                    style="width:44px; height:44px; border-radius:50%; object-fit:cover; border:2px solid {{ $i === 0 ? 'var(--gold)' : 'var(--border2)' }};">
+
+                {{-- Name + teams --}}
+                <div>
+                    <div style="font-family:'Anton',sans-serif; font-size:16px; letter-spacing:0.02em;">{{ $person->name }}</div>
+                    <div style="font-size:11px; color:var(--muted); margin-top:1px;">
+                        {{ $person->teams->pluck('name')->join(', ') }}
+                    </div>
+                </div>
+
+                {{-- Played --}}
+                <div style="text-align:center;">
+                    <div style="font-size:15px; font-weight:500;">{{ $row['played'] }}</div>
+                    <div style="font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);">P</div>
+                </div>
+
+                {{-- Wins --}}
+                <div style="text-align:center;">
+                    <div style="font-size:15px; font-weight:500; color:var(--green);">{{ $row['wins'] }}</div>
+                    <div style="font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);">W</div>
+                </div>
+
+                {{-- Draws --}}
+                <div style="text-align:center;">
+                    <div style="font-size:15px; font-weight:500; color:var(--muted);">{{ $row['draws'] }}</div>
+                    <div style="font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);">D</div>
+                </div>
+
+                {{-- Losses --}}
+                <div style="text-align:center;">
+                    <div style="font-size:15px; font-weight:500; color:var(--red);">{{ $row['losses'] }}</div>
+                    <div style="font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);">L</div>
+                </div>
+
+                {{-- GD --}}
+                <div style="text-align:center;">
+                    <div style="font-size:15px; font-weight:500; color:{{ $row['gd'] > 0 ? 'var(--green)' : ($row['gd'] < 0 ? 'var(--red)' : 'var(--muted)') }};">
+                        {{ $row['gd'] > 0 ? '+' : '' }}{{ $row['gd'] }}
+                    </div>
+                    <div style="font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);">GD</div>
+                </div>
+
+                {{-- Points --}}
+                <div style="text-align:center; background:{{ $i === 0 ? 'rgba(245,197,24,0.12)' : 'var(--surface2)' }}; border-radius:8px; padding:6px 4px; border:1px solid {{ $i === 0 ? 'rgba(245,197,24,0.25)' : 'var(--border)' }};">
+                    <div style="font-family:'Anton',sans-serif; font-size:20px; color:{{ $i === 0 ? 'var(--gold)' : 'var(--text)' }}; line-height:1;">{{ $row['points'] }}</div>
+                    <div style="font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);">Pts</div>
+                </div>
+            </div>
             @endforeach
         </div>
     </section>
@@ -1007,16 +1108,75 @@
 function sweepstake() {
     return {
         battle: null,
+        result: null,
+        _confettiFrame: null,
+        matchTab: '{{ $recentMatches->count() && !$upcomingMatches->count() ? "results" : "upcoming" }}',
 
         init() {
             this.animateCards();
             window.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') this.battle = null;
+                if (e.key === 'Escape') { this.battle = null; this.closeResult(); }
             });
         },
 
         openBattle(data) {
             this.battle = data;
+        },
+
+        openResult(data) {
+            console.log('openResult called', data);
+            this.result = data;
+            console.log('result set to', this.result);
+            this.$nextTick(() => this.launchConfetti());
+        },
+
+        closeResult() {
+            this.result = null;
+            cancelAnimationFrame(this._confettiFrame);
+            const c = document.getElementById('confetti-canvas');
+            if (c) { const ctx = c.getContext('2d'); ctx.clearRect(0, 0, c.width, c.height); }
+        },
+
+        launchConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width  = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const colours = ['#00e87a','#f5c518','#ffffff','#3c8cff','#ff4040','#c0ffb3'];
+            const pieces  = Array.from({ length: 140 }, () => ({
+                x:   Math.random() * canvas.width,
+                y:   Math.random() * canvas.height - canvas.height,
+                w:   6 + Math.random() * 8,
+                h:   10 + Math.random() * 6,
+                col: colours[Math.floor(Math.random() * colours.length)],
+                rot: Math.random() * Math.PI * 2,
+                vx:  (Math.random() - 0.5) * 2,
+                vy:  2 + Math.random() * 4,
+                vr:  (Math.random() - 0.5) * 0.18,
+                alpha: 0.85 + Math.random() * 0.15,
+            }));
+
+            const draw = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let alive = false;
+                pieces.forEach(p => {
+                    p.x  += p.vx;
+                    p.y  += p.vy;
+                    p.rot += p.vr;
+                    if (p.y < canvas.height + 20) alive = true;
+                    ctx.save();
+                    ctx.globalAlpha = p.alpha;
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rot);
+                    ctx.fillStyle = p.col;
+                    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+                    ctx.restore();
+                });
+                if (alive) this._confettiFrame = requestAnimationFrame(draw);
+            };
+            this._confettiFrame = requestAnimationFrame(draw);
         },
 
         animateCards() {
@@ -1074,6 +1234,66 @@ function sweepstake() {
             </div>
         </div>
     </div>
+</template>
+
+{{-- ── RESULT MODAL ── --}}
+<template x-teleport="body">
+<div>
+    <canvas id="confetti-canvas" x-show="result" style="display:none; position:fixed; inset:0; pointer-events:none; z-index:1003;"></canvas>
+
+    <div x-show="result" class="battle-backdrop" @click.self="closeResult()" style="display:none; z-index:1001;">
+        <div class="battle-modal" x-show="result" @click.stop style="max-width:400px;">
+            <button class="battle-close" @click="closeResult()">✕</button>
+
+            {{-- Background tint based on draw/win --}}
+            <div class="battle-bg" :style="result?.isDraw ? '' : 'background: linear-gradient(135deg, #060f08 0%, #0a0a0a 50%, #060f08 100%);'"></div>
+            <div style="position:absolute; inset:0; background: radial-gradient(ellipse at 50% 0%, rgba(0,232,122,0.15) 0%, transparent 65%); z-index:0;" x-show="result && !result.isDraw"></div>
+
+            <div style="position:relative; z-index:1; padding: 36px 28px 24px; text-align:center;">
+
+                {{-- Draw state --}}
+                <template x-if="result?.isDraw">
+                    <div>
+                        <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); margin-bottom:20px;">Full Time</div>
+                        <div style="display:flex; align-items:center; justify-content:center; gap:20px; margin-bottom:20px;">
+                            <img :src="result.homeAvatar" style="width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid rgba(255,255,255,0.1);" onerror="this.style.display='none'">
+                            <div style="font-family:'Anton',sans-serif; font-size:40px; color:var(--muted);">—</div>
+                            <img :src="result.awayAvatar" style="width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid rgba(255,255,255,0.1);" onerror="this.style.display='none'">
+                        </div>
+                        <div style="font-family:'Anton',sans-serif; font-size:38px; letter-spacing:0.04em; color:var(--text); margin-bottom:4px;" x-text="result.homeScore + ' – ' + result.awayScore"></div>
+                        <div style="font-size:13px; color:var(--muted); margin-bottom:6px;" x-text="result.homeTeam + ' vs ' + result.awayTeam"></div>
+                        <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted2);">Draw</div>
+                    </div>
+                </template>
+
+                {{-- Winner state --}}
+                <template x-if="result && !result.isDraw">
+                    <div>
+                        <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--green); margin-bottom:20px;">Full Time</div>
+
+                        <div style="position:relative; display:inline-block; margin-bottom:16px;">
+                            <img :src="result.winnerAvatar"
+                                style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:4px solid var(--green); box-shadow: 0 0 32px rgba(0,232,122,0.4), 0 0 0 8px rgba(0,232,122,0.08); display:block;"
+                                onerror="this.style.display='none'">
+                        </div>
+
+                        <div style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--green); opacity:0.7; margin-bottom:4px;">Winner</div>
+                        <div style="font-family:'Anton',sans-serif; font-size:26px; letter-spacing:0.04em; text-transform:uppercase; color:var(--green); margin-bottom:2px;" x-text="result.winnerPerson"></div>
+                        <div style="font-size:13px; color:var(--muted); margin-bottom:20px;" x-text="result.winnerTeam"></div>
+
+                        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 20px;">
+                            <div style="font-family:'Anton',sans-serif; font-size:34px; letter-spacing:0.06em; color:var(--text);" x-text="result.homeScore + ' – ' + result.awayScore"></div>
+                            <div style="font-size:12px; color:var(--muted); margin-top:4px;" x-text="result.homeTeam + ' vs ' + result.awayTeam"></div>
+                        </div>
+
+                        <div style="margin-top:12px; font-size:11px; font-family:'DM Mono',monospace; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted2);" x-text="result.stage"></div>
+                    </div>
+                </template>
+
+            </div>
+        </div>
+    </div>
+</div>
 </template>
 
 </body>
