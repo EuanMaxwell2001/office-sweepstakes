@@ -32,16 +32,7 @@ class FootballMatch extends Model
         'away_score' => 'integer',
     ];
 
-    protected function asDateTime($value)
-    {
-        if (is_string($value)) {
-            return \Carbon\Carbon::parse($value, 'UTC')->setTimezone(config('app.timezone'));
-        }
-
-        return parent::asDateTime($value);
-    }
-
-    public function scopeFinished($query)
+public function scopeFinished($query)
     {
         return $query->where('status', 'finished');
     }
