@@ -168,9 +168,20 @@ class SyncMatchesCommand extends Command
 
             $statusType = $event['status']['type']['name'] ?? 'STATUS_SCHEDULED';
             $status = match (true) {
-                str_contains($statusType, 'IN_PROGRESS') => 'live',
-                str_contains($statusType, 'FINAL')       => 'finished',
-                default                                  => 'scheduled',
+                in_array($statusType, [
+                    'STATUS_IN_PROGRESS',
+                    'STATUS_FIRST_HALF',
+                    'STATUS_SECOND_HALF',
+                    'STATUS_HALFTIME',
+                    'STATUS_EXTRA_TIME',
+                    'STATUS_PENALTY',
+                ]) => 'live',
+                in_array($statusType, [
+                    'STATUS_FINAL',
+                    'STATUS_FULL_TIME',
+                    'STATUS_FT',
+                ]) => 'finished',
+                default => 'scheduled',
             };
 
             FootballMatch::updateOrCreate(
