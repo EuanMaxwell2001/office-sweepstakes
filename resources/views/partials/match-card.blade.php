@@ -38,7 +38,9 @@
         'winnerPerson' => $winnerEntry['person'] ?? null,
         'winnerTeam'   => $winnerTeam,
         'winnerAvatar' => $winnerEntry['avatar_url'] ?? 'https://ui-avatars.com/api/?name=' . urlencode($winnerTeam) . '&background=061a0e&color=00e87a&size=128',
+        'winnerFlag'   => $homeWon ? $homeFlag : $awayFlag,
         'stage'        => $match->stage,
+        'stats'        => $match->stats,
     ]) : 'null';
 @endphp
 

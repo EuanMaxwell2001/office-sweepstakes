@@ -118,6 +118,7 @@
             font-family: 'Anton', sans-serif;
             font-size: clamp(52px, 8vw, 96px);
             line-height: 0.95;
+            font-size: 500;
             letter-spacing: -0.02em;
             text-transform: uppercase;
             opacity: 0;
@@ -819,6 +820,56 @@
 
         .match-card.upcoming-card { cursor: pointer; }
 
+        /* ── LEADERBOARD ── */
+        .lb-row {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 20px;
+            display: grid;
+            grid-template-columns: 32px 52px 1fr auto 56px;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .lb-row.lb-first {
+            border-color: rgba(245,197,24,0.3);
+            background: linear-gradient(135deg, rgba(245,197,24,0.06), var(--surface));
+        }
+
+        .lb-chips {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .lb-chip {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            padding: 5px 6px;
+            border-radius: 6px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            line-height: 1;
+            gap: 2px;
+        }
+
+        .lb-chip-val {
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'DM Mono', monospace;
+        }
+
+        .lb-chip-label {
+            font-size: 8px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted2);
+        }
+
         /* ── RESPONSIVE ── */
         @media (max-width: 640px) {
             .hero { padding: 40px 0 32px; }
@@ -826,6 +877,14 @@
             .people-grid { grid-template-columns: 1fr; }
             .match-grid { grid-template-columns: 1fr; }
             .tabs { overflow-x: auto; }
+
+            .lb-row {
+                grid-template-columns: 28px 40px 1fr 56px;
+                padding: 12px 14px;
+                gap: 10px;
+            }
+
+            .lb-chips { display: none; }
         }
     </style>
 </head>
@@ -849,6 +908,7 @@
             Office<br><span class="accent">Sweepstake</span>
         </h1>
         <p class="hero-sub">Who's taking home the glory? Track your teams, watch the results unfold.</p>
+        <p style="font-size:12px; color:var(--muted2); margin-top:8px; font-family:'DM Mono',monospace; letter-spacing:0.08em;">Made by Euan</p>
         <div class="hero-stats">
             <div class="hero-stat">
                 <span class="hero-stat-val">{{ $people->where('is_office', false)->count() }}</span>
@@ -962,17 +1022,7 @@
         <div style="display:flex; flex-direction:column; gap:8px;">
             @foreach($leaderboard as $i => $row)
             @php $person = $row['person']; @endphp
-            <div style="
-                background: var(--surface);
-                border: 1px solid {{ $i === 0 ? 'rgba(245,197,24,0.3)' : 'var(--border)' }};
-                border-radius: 12px;
-                padding: 14px 20px;
-                display: grid;
-                grid-template-columns: 32px 52px 1fr repeat(5, 48px) 56px;
-                align-items: center;
-                gap: 12px;
-                {{ $i === 0 ? 'background: linear-gradient(135deg, rgba(245,197,24,0.06), var(--surface));' : '' }}
-            ">
+            <div class="lb-row {{ $i === 0 ? 'lb-first' : '' }}">
                 {{-- Rank --}}
                 <div style="font-family:'Anton',sans-serif; font-size:18px; color:{{ $i === 0 ? 'var(--gold)' : 'var(--muted2)' }}; text-align:center;">
                     {{ $i + 1 }}
@@ -983,43 +1033,35 @@
                     style="width:44px; height:44px; border-radius:50%; object-fit:cover; border:2px solid {{ $i === 0 ? 'var(--gold)' : 'var(--border2)' }};">
 
                 {{-- Name + teams --}}
-                <div>
-                    <div style="font-family:'Anton',sans-serif; font-size:16px; letter-spacing:0.02em;">{{ $person->name }}</div>
-                    <div style="font-size:11px; color:var(--muted); margin-top:1px;">
+                <div style="min-width:0;">
+                    <div style="font-family:'Anton',sans-serif; font-size:16px; letter-spacing:0.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $person->name }}</div>
+                    <div style="font-size:11px; color:var(--muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                         {{ $person->teams->pluck('name')->join(', ') }}
                     </div>
                 </div>
 
-                {{-- Played --}}
-                <div style="text-align:center;">
-                    <div style="font-size:15px; font-weight:500;">{{ $row['played'] }}</div>
-                    <div style="font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);">P</div>
-                </div>
-
-                {{-- Wins --}}
-                <div style="text-align:center;">
-                    <div style="font-size:15px; font-weight:500; color:var(--green);">{{ $row['wins'] }}</div>
-                    <div style="font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);">W</div>
-                </div>
-
-                {{-- Draws --}}
-                <div style="text-align:center;">
-                    <div style="font-size:15px; font-weight:500; color:var(--muted);">{{ $row['draws'] }}</div>
-                    <div style="font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);">D</div>
-                </div>
-
-                {{-- Losses --}}
-                <div style="text-align:center;">
-                    <div style="font-size:15px; font-weight:500; color:var(--red);">{{ $row['losses'] }}</div>
-                    <div style="font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);">L</div>
-                </div>
-
-                {{-- GD --}}
-                <div style="text-align:center;">
-                    <div style="font-size:15px; font-weight:500; color:{{ $row['gd'] > 0 ? 'var(--green)' : ($row['gd'] < 0 ? 'var(--red)' : 'var(--muted)') }};">
-                        {{ $row['gd'] > 0 ? '+' : '' }}{{ $row['gd'] }}
+                {{-- Stats chips --}}
+                <div class="lb-chips">
+                    <div class="lb-chip">
+                        <span class="lb-chip-val">{{ $row['played'] }}</span>
+                        <span class="lb-chip-label">P</span>
                     </div>
-                    <div style="font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);">GD</div>
+                    <div class="lb-chip">
+                        <span class="lb-chip-val" style="color:var(--green);">{{ $row['wins'] }}</span>
+                        <span class="lb-chip-label">W</span>
+                    </div>
+                    <div class="lb-chip">
+                        <span class="lb-chip-val" style="color:var(--muted);">{{ $row['draws'] }}</span>
+                        <span class="lb-chip-label">D</span>
+                    </div>
+                    <div class="lb-chip">
+                        <span class="lb-chip-val" style="color:var(--red);">{{ $row['losses'] }}</span>
+                        <span class="lb-chip-label">L</span>
+                    </div>
+                    <div class="lb-chip">
+                        <span class="lb-chip-val" style="color:{{ $row['gd'] > 0 ? 'var(--green)' : ($row['gd'] < 0 ? 'var(--red)' : 'var(--muted)') }};">{{ $row['gd'] > 0 ? '+' : '' }}{{ $row['gd'] }}</span>
+                        <span class="lb-chip-label">GD</span>
+                    </div>
                 </div>
 
                 {{-- Points --}}
@@ -1179,6 +1221,20 @@ function sweepstake() {
             this._confettiFrame = requestAnimationFrame(draw);
         },
 
+        allEvents(stats) {
+            if (!stats?.events?.length) return null;
+            const relevant = stats.events
+                .filter(e => ['goal','ownGoal','redCard','yellowCard'].includes(e.type))
+                .sort((a, b) => (parseInt(a.minute) || 0) - (parseInt(b.minute) || 0))
+                .map(e => ({
+                    ...e,
+                    icon: e.type === 'redCard' ? '🟥' : e.type === 'yellowCard' ? '🟨' : '⚽',
+                    note: e.type === 'ownGoal' ? 'og' : e.penalty ? 'pen' : null,
+                    minuteStr: e.minute ? String(e.minute).replace(/'$/, '') + "'" : '',
+                }));
+            return relevant.length ? relevant : null;
+        },
+
         animateCards() {
             const cards = document.querySelectorAll('.person-card');
             const observer = new IntersectionObserver((entries) => {
@@ -1242,7 +1298,7 @@ function sweepstake() {
     <canvas id="confetti-canvas" x-show="result" style="display:none; position:fixed; inset:0; pointer-events:none; z-index:1003;"></canvas>
 
     <div x-show="result" class="battle-backdrop" @click.self="closeResult()" style="display:none; z-index:1001;">
-        <div class="battle-modal" x-show="result" @click.stop style="max-width:400px;">
+        <div class="battle-modal" x-show="result" @click.stop style="max-width:400px; max-height:90vh; overflow-y:auto;">
             <button class="battle-close" @click="closeResult()">✕</button>
 
             {{-- Background tint based on draw/win --}}
@@ -1260,9 +1316,69 @@ function sweepstake() {
                             <div style="font-family:'Anton',sans-serif; font-size:40px; color:var(--muted);">—</div>
                             <img :src="result.awayAvatar" style="width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid rgba(255,255,255,0.1);" onerror="this.style.display='none'">
                         </div>
-                        <div style="font-family:'Anton',sans-serif; font-size:38px; letter-spacing:0.04em; color:var(--text); margin-bottom:4px;" x-text="result.homeScore + ' – ' + result.awayScore"></div>
-                        <div style="font-size:13px; color:var(--muted); margin-bottom:6px;" x-text="result.homeTeam + ' vs ' + result.awayTeam"></div>
-                        <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted2);">Draw</div>
+                        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 20px; margin-bottom:0;">
+                            <div style="font-family:'Anton',sans-serif; font-size:38px; letter-spacing:0.04em; color:var(--text); margin-bottom:4px;" x-text="result.homeScore + ' – ' + result.awayScore"></div>
+                            <div style="font-size:13px; color:var(--muted); margin-bottom:4px;" x-text="result.homeTeam + ' vs ' + result.awayTeam"></div>
+                            <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted2);">Draw</div>
+
+                            <template x-if="allEvents(result.stats)">
+                                <div style="margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06); display:flex; flex-direction:column; gap:2px;">
+                                    <template x-for="e in allEvents(result.stats)" :key="(e.player||'') + (e.minute||'') + e.type">
+                                        <div :style="e.side === 'home' ? 'display:flex; justify-content:flex-start;' : 'display:flex; justify-content:flex-end;'">
+                                            <div style="display:inline-flex; align-items:center; gap:6px; padding:2px 0;">
+                                                <span style="font-size:12px;" x-text="e.icon"></span>
+                                                <span style="font-size:12px; color:var(--text); font-weight:500;" x-text="e.player ?? ''"></span>
+                                                <span x-show="e.note" style="font-size:9px; color:var(--muted); font-family:'DM Mono',monospace;" x-text="e.note ? '(' + e.note + ')' : ''"></span>
+                                                <span x-show="e.minuteStr" style="font-family:'DM Mono',monospace; font-size:9px; color:var(--muted2); background:rgba(255,255,255,0.07); border-radius:3px; padding:1px 5px;" x-text="e.minuteStr"></span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+
+                        <template x-if="result.stats">
+                            <div style="margin-top:16px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; text-align:left;">
+                                <div style="font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted2); text-align:center; margin-bottom:14px;">Match Stats</div>
+
+                                {{-- Possession --}}
+                                <template x-if="result.stats.home.possession && result.stats.away.possession">
+                                    <div style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.06);">
+                                        <div style="display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; margin-bottom:6px;">
+                                            <span style="font-family:'Anton',sans-serif; font-size:16px; color:rgba(120,180,255,0.9); text-align:right;" x-text="result.stats.home.possession + '%'"></span>
+                                            <span style="font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); min-width:72px; text-align:center;">Possession</span>
+                                            <span style="font-family:'Anton',sans-serif; font-size:16px; color:rgba(255,120,120,0.9);" x-text="result.stats.away.possession + '%'"></span>
+                                        </div>
+                                        <div style="height:5px; border-radius:3px; overflow:hidden; background:rgba(255,255,255,0.06); display:flex;">
+                                            <div :style="'width:' + result.stats.home.possession + '%; background:rgba(60,140,255,0.65); border-radius:3px 0 0 3px; transition:width 0.6s ease;'"></div>
+                                            <div style="flex:1; background:rgba(255,60,60,0.65); border-radius:0 3px 3px 0;"></div>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                {{-- Other stat rows with proportion bar --}}
+                                <template x-for="row in [
+                                    { label: 'Shots', home: result.stats.home.shots, away: result.stats.away.shots },
+                                    { label: 'On Target', home: result.stats.home.shotsOnTarget, away: result.stats.away.shotsOnTarget },
+                                    { label: 'Corners', home: result.stats.home.corners, away: result.stats.away.corners },
+                                    { label: 'Fouls', home: result.stats.home.fouls, away: result.stats.away.fouls },
+                                    { label: 'Yellows', home: result.stats.home.yellowCards, away: result.stats.away.yellowCards },
+                                    { label: 'Saves', home: result.stats.home.saves, away: result.stats.away.saves },
+                                ].filter(r => r.home != null || r.away != null)" :key="row.label">
+                                    <div style="padding:7px 0;">
+                                        <div style="display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; margin-bottom:5px;">
+                                            <span style="font-family:'Anton',sans-serif; font-size:15px; color:rgba(120,180,255,0.9); text-align:right;" x-text="row.home ?? '–'"></span>
+                                            <span style="font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); min-width:72px; text-align:center;" x-text="row.label"></span>
+                                            <span style="font-family:'Anton',sans-serif; font-size:15px; color:rgba(255,120,120,0.9);" x-text="row.away ?? '–'"></span>
+                                        </div>
+                                        <div style="height:3px; border-radius:2px; overflow:hidden; background:rgba(255,255,255,0.06); display:flex;" x-show="(row.home ?? 0) + (row.away ?? 0) > 0">
+                                            <div :style="'width:' + ((row.home ?? 0) / ((row.home ?? 0) + (row.away ?? 0)) * 100) + '%; background:rgba(60,140,255,0.55); border-radius:2px 0 0 2px;'"></div>
+                                            <div style="flex:1; background:rgba(255,60,60,0.55); border-radius:0 2px 2px 0;"></div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
                     </div>
                 </template>
 
@@ -1275,6 +1391,9 @@ function sweepstake() {
                             <img :src="result.winnerAvatar"
                                 style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:4px solid var(--green); box-shadow: 0 0 32px rgba(0,232,122,0.4), 0 0 0 8px rgba(0,232,122,0.08); display:block;"
                                 onerror="this.style.display='none'">
+                            <img x-show="result.winnerFlag" :src="result.winnerFlag"
+                                style="position:absolute; bottom:-4px; right:-4px; width:32px; height:22px; object-fit:cover; border-radius:4px; border:2px solid var(--bg); box-shadow:0 2px 8px rgba(0,0,0,0.5);"
+                                onerror="this.style.display='none'">
                         </div>
 
                         <div style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--green); opacity:0.7; margin-bottom:4px;">Winner</div>
@@ -1284,7 +1403,59 @@ function sweepstake() {
                         <div style="background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 20px;">
                             <div style="font-family:'Anton',sans-serif; font-size:34px; letter-spacing:0.06em; color:var(--text);" x-text="result.homeScore + ' – ' + result.awayScore"></div>
                             <div style="font-size:12px; color:var(--muted); margin-top:4px;" x-text="result.homeTeam + ' vs ' + result.awayTeam"></div>
+
+                            <template x-if="allEvents(result.stats)">
+                                <div style="margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06); display:flex; flex-direction:column; gap:2px;">
+                                    <template x-for="e in allEvents(result.stats)" :key="(e.player||'') + (e.minute||'') + e.type">
+                                        <div :style="e.side === 'home' ? 'display:flex; justify-content:flex-start;' : 'display:flex; justify-content:flex-end;'">
+                                            <div style="display:inline-flex; align-items:center; gap:6px; padding:2px 0;">
+                                                <span style="font-size:12px;" x-text="e.icon"></span>
+                                                <span style="font-size:12px; color:var(--text); font-weight:500;" x-text="e.player ?? ''"></span>
+                                                <span x-show="e.note" style="font-size:9px; color:var(--muted); font-family:'DM Mono',monospace;" x-text="e.note ? '(' + e.note + ')' : ''"></span>
+                                                <span x-show="e.minuteStr" style="font-family:'DM Mono',monospace; font-size:9px; color:var(--muted2); background:rgba(255,255,255,0.07); border-radius:3px; padding:1px 5px;" x-text="e.minuteStr"></span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
                         </div>
+
+                        <template x-if="result.stats">
+                            <div style="margin-top:16px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; text-align:left;">
+                                <div style="font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted2); text-align:center; margin-bottom:12px;">Match Stats</div>
+
+                                {{-- Possession bar --}}
+                                <template x-if="result.stats.home.possession && result.stats.away.possession">
+                                    <div style="margin-bottom:12px;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                            <span style="font-family:'Anton',sans-serif; font-size:14px;" x-text="result.stats.home.possession + '%'"></span>
+                                            <span style="font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);">Possession</span>
+                                            <span style="font-family:'Anton',sans-serif; font-size:14px;" x-text="result.stats.away.possession + '%'"></span>
+                                        </div>
+                                        <div style="height:6px; border-radius:3px; overflow:hidden; background:rgba(255,255,255,0.08); display:flex;">
+                                            <div :style="'width:' + result.stats.home.possession + '%; background:rgba(60,140,255,0.7); border-radius:3px 0 0 3px;'"></div>
+                                            <div :style="'flex:1; background:rgba(255,60,60,0.7); border-radius:0 3px 3px 0;'"></div>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                {{-- Stat rows --}}
+                                <template x-for="row in [
+                                    { label: 'Shots', home: result.stats.home.shots, away: result.stats.away.shots },
+                                    { label: 'On Target', home: result.stats.home.shotsOnTarget, away: result.stats.away.shotsOnTarget },
+                                    { label: 'Corners', home: result.stats.home.corners, away: result.stats.away.corners },
+                                    { label: 'Fouls', home: result.stats.home.fouls, away: result.stats.away.fouls },
+                                    { label: 'Yellows', home: result.stats.home.yellowCards, away: result.stats.away.yellowCards },
+                                    { label: 'Saves', home: result.stats.home.saves, away: result.stats.away.saves },
+                                ].filter(r => r.home != null || r.away != null)" :key="row.label">
+                                    <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:6px; align-items:center; padding:4px 0; border-top:1px solid rgba(255,255,255,0.04);">
+                                        <span style="font-family:'Anton',sans-serif; font-size:14px; color:var(--text);" x-text="row.home ?? '–'"></span>
+                                        <span style="font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); text-align:center; min-width:64px;" x-text="row.label"></span>
+                                        <span style="font-family:'Anton',sans-serif; font-size:14px; color:var(--text); text-align:right;" x-text="row.away ?? '–'"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
 
                         <div style="margin-top:12px; font-size:11px; font-family:'DM Mono',monospace; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted2);" x-text="result.stage"></div>
                     </div>

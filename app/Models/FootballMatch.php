@@ -24,12 +24,14 @@ class FootballMatch extends Model
         'stage',
         'group_name',
         'venue',
+        'stats',
     ];
 
     protected $casts = [
         'match_date' => 'datetime',
         'home_score' => 'integer',
         'away_score' => 'integer',
+        'stats'      => 'array',
     ];
 
 public function scopeFinished($query)

@@ -184,6 +184,8 @@ class SyncMatchesCommand extends Command
                 default => 'scheduled',
             };
 
+            $stats = $status === 'finished' ? $this->extractStats($home, $away, $comp) : null;
+
             FootballMatch::updateOrCreate(
                 ['espn_id' => (string) $event['id']],
                 [
@@ -201,6 +203,7 @@ class SyncMatchesCommand extends Command
                     'stage'          => $event['season']['slug'] ?? null,
                     'group_name'     => $comp['series']['summary'] ?? null,
                     'venue'          => $comp['venue']['fullName'] ?? null,
+                    'stats'          => $stats,
                 ]
             );
 
@@ -209,6 +212,82 @@ class SyncMatchesCommand extends Command
 
         $this->info("Done — synced {$synced} matches.");
         return self::SUCCESS;
+    }
+
+    private function extractStats(array $home, array $away, array $comp): ?array
+    {
+        $parse = function (array $competitor): array {
+            $map = [];
+            foreach ($competitor['statistics'] ?? [] as $stat) {
+                $map[$stat['name']] = $stat['displayValue'] ?? $stat['value'] ?? null;
+            }
+            return $map;
+        };
+
+        $h = $parse($home);
+        $a = $parse($away);
+
+        $homeId = $home['team']['id'] ?? null;
+
+        // Parse match events (goals, cards) from competition details
+        $events = [];
+        foreach ($comp['details'] ?? [] as $detail) {
+            $typeText = strtolower($detail['type']['text'] ?? '');
+            $teamId   = $detail['team']['id'] ?? null;
+            $side     = $teamId === $homeId ? 'home' : 'away';
+            $minute   = $detail['clock']['displayValue'] ?? null;
+            $players  = array_map(
+                fn($a) => $a['displayName'] ?? '',
+                $detail['athletesInvolved'] ?? []
+            );
+            $player = $players[0] ?? null;
+
+            if (str_contains($typeText, 'goal') || str_contains($typeText, 'penalty')) {
+                $isOwn     = str_contains($typeText, 'own');
+                $isPenalty = str_contains($typeText, 'penalty');
+                $events[]  = [
+                    'type'    => $isOwn ? 'ownGoal' : 'goal',
+                    'side'    => $isOwn ? ($side === 'home' ? 'away' : 'home') : $side,
+                    'player'  => $player,
+                    'minute'  => $minute,
+                    'penalty' => $isPenalty && ! $isOwn,
+                ];
+            } elseif (str_contains($typeText, 'red card') || $typeText === 'red') {
+                $events[] = ['type' => 'redCard', 'side' => $side, 'player' => $player, 'minute' => $minute];
+            } elseif (str_contains($typeText, 'yellow card') || $typeText === 'yellow') {
+                $events[] = ['type' => 'yellowCard', 'side' => $side, 'player' => $player, 'minute' => $minute];
+            }
+        }
+
+        if (empty($h) && empty($a) && empty($events)) return null;
+
+        $pick = fn(array $m, string $key): ?string => $m[$key] ?? null;
+
+        return [
+            'home' => [
+                'possession'    => $pick($h, 'possessionPct'),
+                'shots'         => $pick($h, 'totalShots'),
+                'shotsOnTarget' => $pick($h, 'shotsOnTarget'),
+                'corners'       => $pick($h, 'cornerKicks'),
+                'fouls'         => $pick($h, 'fouls'),
+                'yellowCards'   => $pick($h, 'yellowCards'),
+                'redCards'      => $pick($h, 'redCards'),
+                'offsides'      => $pick($h, 'offsides'),
+                'saves'         => $pick($h, 'saves'),
+            ],
+            'away' => [
+                'possession'    => $pick($a, 'possessionPct'),
+                'shots'         => $pick($a, 'totalShots'),
+                'shotsOnTarget' => $pick($a, 'shotsOnTarget'),
+                'corners'       => $pick($a, 'cornerKicks'),
+                'fouls'         => $pick($a, 'fouls'),
+                'yellowCards'   => $pick($a, 'yellowCards'),
+                'redCards'      => $pick($a, 'redCards'),
+                'offsides'      => $pick($a, 'offsides'),
+                'saves'         => $pick($a, 'saves'),
+            ],
+            'events' => $events,
+        ];
     }
 
     private function flagUrl(string $teamName): string
