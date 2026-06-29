@@ -1092,13 +1092,14 @@
                         alt="{{ $person->name }}"
                         loading="lazy"
                     >
-                    <div class="person-info">
-                        <div class="person-name">{{ $person->name }}</div>
-                        <div class="person-team-count">{{ $person->teams->count() }} {{ Str::plural('team', $person->teams->count()) }}</div>
-                    </div>
                     @php
                         $active = $person->teams->where('is_eliminated', false)->count();
+                        $total = $person->teams->count();
                     @endphp
+                    <div class="person-info">
+                        <div class="person-name">{{ $person->name }}</div>
+                        <div class="person-team-count">{{ $active }} of {{ $total }} {{ Str::plural('team', $total) }} left</div>
+                    </div>
                     <div class="person-score">
                         <div class="person-score-val" style="{{ $person->is_office ? 'color:var(--gold)' : '' }}">
                             {{ $active }}
