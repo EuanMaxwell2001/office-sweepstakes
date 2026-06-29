@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\FootballMatch;
+use App\Models\Team;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -211,7 +212,78 @@ class SyncMatchesCommand extends Command
         }
 
         $this->info("Done — synced {$synced} matches.");
+
+        $this->syncEliminations();
+
         return self::SUCCESS;
+    }
+
+    private function syncEliminations(): void
+    {
+        try {
+            $response = Http::timeout(15)->withoutVerifying()->get(
+                'https://site.api.espn.com/apis/v2/sports/soccer/fifa.world/standings'
+            );
+
+            if (! $response->ok()) {
+                $this->warn('  ✗ Could not fetch standings');
+                return;
+            }
+
+            $eliminated = [];
+            $stillIn    = [];
+
+            foreach ($response->json('children') ?? [] as $group) {
+                foreach ($group['standings']['entries'] ?? [] as $entry) {
+                    $name   = strtolower($entry['team']['displayName'] ?? '');
+                    $note   = strtolower($entry['note']['description'] ?? '');
+                    if (! $name) continue;
+
+                    if (str_contains($note, 'eliminat')) {
+                        $eliminated[] = $name;
+                    } else {
+                        $stillIn[] = $name;
+                    }
+                }
+            }
+
+            // Apply aliases so our DB team names match ESPN names
+            $aliases = [
+                'bosnia-herzegovina'     => 'bosnia & herzegovina',
+                'bosnia and herzegovina' => 'bosnia & herzegovina',
+                'ivory coast'            => "côte d'ivoire",
+                "cote d'ivoire"          => "côte d'ivoire",
+                'cape verde'             => 'cabo verde',
+                'turkiye'                => 'turkey',
+                'türkiye'                => 'turkey',
+                'dr congo'               => 'congo',
+                'congo dr'               => 'congo',
+                'korea republic'         => 'south korea',
+                'united states'          => 'usa',
+                'the netherlands'        => 'netherlands',
+                'curacao'                => 'curaçao',
+            ];
+
+            $resolveAlias = function (string $name) use ($aliases): string {
+                return $aliases[$name] ?? $name;
+            };
+
+            $eliminated = array_map($resolveAlias, $eliminated);
+            $stillIn    = array_map($resolveAlias, $stillIn);
+
+            $updatedOut = Team::whereIn(\DB::raw('LOWER(name)'), $eliminated)
+                ->where('is_eliminated', false)
+                ->update(['is_eliminated' => true]);
+
+            $updatedIn = Team::whereIn(\DB::raw('LOWER(name)'), $stillIn)
+                ->where('is_eliminated', true)
+                ->update(['is_eliminated' => false]);
+
+            $this->line("  → Eliminations: {$updatedOut} newly out, {$updatedIn} reinstated");
+
+        } catch (\Exception $e) {
+            $this->warn('  ✗ Elimination sync failed: ' . $e->getMessage());
+        }
     }
 
     private function extractStats(array $home, array $away, array $comp): ?array

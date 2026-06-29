@@ -11,6 +11,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -89,6 +90,11 @@ class TeamResource extends Resource
                     ->label('Eliminated'),
             ])
             ->actions([
+                Action::make('toggleEliminated')
+                    ->label(fn (Team $record) => $record->is_eliminated ? 'Mark In' : 'Mark Out')
+                    ->icon(fn (Team $record) => $record->is_eliminated ? 'heroicon-o-arrow-uturn-left' : 'heroicon-o-x-circle')
+                    ->color(fn (Team $record) => $record->is_eliminated ? 'success' : 'danger')
+                    ->action(fn (Team $record) => $record->update(['is_eliminated' => ! $record->is_eliminated])),
                 EditAction::make(),
                 DeleteAction::make(),
             ])
