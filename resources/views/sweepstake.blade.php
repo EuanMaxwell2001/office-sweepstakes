@@ -1021,8 +1021,11 @@
 
         <div style="display:flex; flex-direction:column; gap:8px;">
             @foreach($leaderboard as $i => $row)
-            @php $person = $row['person']; @endphp
-            <div class="lb-row {{ $i === 0 ? 'lb-first' : '' }}">
+            @php
+                $person = $row['person'];
+                $allOut = $person->teams->every(fn($t) => $t->is_eliminated);
+            @endphp
+            <div class="lb-row {{ $i === 0 ? 'lb-first' : '' }}" style="{{ $allOut ? 'opacity:0.5;' : '' }}">
                 {{-- Rank --}}
                 <div style="font-family:'Anton',sans-serif; font-size:18px; color:{{ $i === 0 ? 'var(--gold)' : 'var(--muted2)' }}; text-align:center;">
                     {{ $i + 1 }}
@@ -1035,8 +1038,15 @@
                 {{-- Name + teams --}}
                 <div style="min-width:0;">
                     <div style="font-family:'Anton',sans-serif; font-size:16px; letter-spacing:0.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $person->name }}</div>
-                    <div style="font-size:11px; color:var(--muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                        {{ $person->teams->pluck('name')->join(', ') }}
+                    <div style="font-size:11px; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        @foreach($person->teams->sortBy('is_eliminated') as $t)
+                            @if($t->is_eliminated)
+                                <span style="color:var(--red); opacity:0.6; text-decoration:line-through;">{{ $t->name }}</span>
+                            @else
+                                <span style="color:var(--muted);">{{ $t->name }}</span>
+                            @endif
+                            @if(! $loop->last)<span style="color:var(--border2);">, </span>@endif
+                        @endforeach
                     </div>
                 </div>
 
