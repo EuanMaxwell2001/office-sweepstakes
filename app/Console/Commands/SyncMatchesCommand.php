@@ -230,19 +230,41 @@ class SyncMatchesCommand extends Command
                 return;
             }
 
-            $eliminated = [];
-            $stillIn    = [];
+            $eliminated   = [];
+            $best8advance = [];
+            $stillIn      = [];
 
             foreach ($response->json('children') ?? [] as $group) {
                 foreach ($group['standings']['entries'] ?? [] as $entry) {
-                    $name   = strtolower($entry['team']['displayName'] ?? '');
-                    $note   = strtolower($entry['note']['description'] ?? '');
+                    $name = strtolower($entry['team']['displayName'] ?? '');
+                    $note = strtolower($entry['note']['description'] ?? '');
                     if (! $name) continue;
 
                     if (str_contains($note, 'eliminat')) {
                         $eliminated[] = $name;
+                    } elseif (str_contains($note, 'best 8') || str_contains($note, 'best eight')) {
+                        $best8advance[] = $name;
                     } else {
                         $stillIn[] = $name;
+                    }
+                }
+            }
+
+            // For "Best 8 advance" teams, check if they actually appear in any
+            // round-of-32 match in our DB — if not, they didn't make the cut.
+            if (! empty($best8advance)) {
+                $r32Teams = FootballMatch::where('stage', 'round-of-32')
+                    ->get()
+                    ->flatMap(fn($m) => [strtolower($m->home_team), strtolower($m->away_team)])
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                foreach ($best8advance as $name) {
+                    if (in_array($name, $r32Teams)) {
+                        $stillIn[] = $name;
+                    } else {
+                        $eliminated[] = $name;
                     }
                 }
             }
