@@ -181,11 +181,20 @@ class SyncMatchesCommand extends Command
                     'STATUS_FINAL',
                     'STATUS_FULL_TIME',
                     'STATUS_FT',
+                    'STATUS_FINAL_AET',
+                    'STATUS_FINAL_PEN',
+                    'STATUS_FINAL_ET',
                 ]) => 'finished',
                 default => 'scheduled',
             };
 
             $stats = $status === 'finished' ? $this->extractStats($home, $away, $comp) : null;
+
+            // Store winner info so elimination logic can handle draws on 90-min score (pens/AET)
+            if ($stats !== null) {
+                $stats['home_winner'] = isset($home['winner']) ? (bool) $home['winner'] : null;
+                $stats['away_winner'] = isset($away['winner']) ? (bool) $away['winner'] : null;
+            }
 
             FootballMatch::updateOrCreate(
                 ['espn_id' => (string) $event['id']],
@@ -292,6 +301,45 @@ class SyncMatchesCommand extends Command
 
             $eliminated = array_map($resolveAlias, $eliminated);
             $stillIn    = array_map($resolveAlias, $stillIn);
+
+            // Knockout rounds: mark the loser of each finished knockout match as eliminated.
+            // Needed for pens/AET where 90-min scores are level.
+            $knockoutStages = [
+                'round-of-32', 'round-of-16',
+                'quarterfinal', 'quarterfinals',
+                'semifinal', 'semifinals',
+                'semi-final', 'semi-finals',
+                'final',
+            ];
+
+            $knockoutMatches = FootballMatch::whereIn('stage', $knockoutStages)
+                ->where('status', 'finished')
+                ->get();
+
+            foreach ($knockoutMatches as $match) {
+                $s = $match->stats ?? [];
+                $homeWinner = $s['home_winner'] ?? null;
+
+                if ($homeWinner === null) {
+                    // Fall back to score for regular-time finishes
+                    if ($match->home_score !== null && $match->home_score !== $match->away_score) {
+                        $homeWinner = $match->home_score > $match->away_score;
+                    } else {
+                        continue; // Can't determine winner
+                    }
+                }
+
+                $loser  = $resolveAlias(strtolower($homeWinner ? $match->away_team : $match->home_team));
+                $winner = $resolveAlias(strtolower($homeWinner ? $match->home_team : $match->away_team));
+
+                if (! in_array($loser, $eliminated)) {
+                    $eliminated[] = $loser;
+                }
+                // Winner is definitely still in (may override a stale standings note)
+                if (! in_array($winner, $stillIn)) {
+                    $stillIn[] = $winner;
+                }
+            }
 
             $updatedOut = Team::whereIn(\DB::raw('LOWER(name)'), $eliminated)
                 ->where('is_eliminated', false)
