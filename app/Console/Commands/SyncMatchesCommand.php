@@ -191,7 +191,8 @@ class SyncMatchesCommand extends Command
             $stats = $status === 'finished' ? $this->extractStats($home, $away, $comp) : null;
 
             // Store winner info so elimination logic can handle draws on 90-min score (pens/AET)
-            if ($stats !== null) {
+            if ($status === 'finished') {
+                $stats ??= [];
                 $stats['home_winner'] = isset($home['winner']) ? (bool) $home['winner'] : null;
                 $stats['away_winner'] = isset($away['winner']) ? (bool) $away['winner'] : null;
             }
@@ -335,14 +336,19 @@ class SyncMatchesCommand extends Command
                 if (! in_array($loser, $eliminated)) {
                     $eliminated[] = $loser;
                 }
+                // Remove loser from stillIn so the reinstated query doesn't undo elimination
+                $stillIn = array_values(array_filter($stillIn, fn ($n) => $n !== $loser));
+
                 // Winner is definitely still in (may override a stale standings note)
                 if (! in_array($winner, $stillIn)) {
                     $stillIn[] = $winner;
                 }
+                // Remove winner from eliminated in case standings were stale
+                $eliminated = array_values(array_filter($eliminated, fn ($n) => $n !== $winner));
             }
 
             $updatedOut = Team::whereIn(\DB::raw('LOWER(name)'), $eliminated)
-                ->where('is_eliminated', false)
+                ->where(fn ($q) => $q->where('is_eliminated', false)->orWhereNull('is_eliminated'))
                 ->update(['is_eliminated' => true]);
 
             $updatedIn = Team::whereIn(\DB::raw('LOWER(name)'), $stillIn)

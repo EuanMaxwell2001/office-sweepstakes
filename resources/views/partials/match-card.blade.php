@@ -22,13 +22,22 @@
         'kickoff'    => $match->match_date?->format('H:i'),
     ]) : 'null';
 
-    $isDraw      = $match->isFinished() && $match->home_score === $match->away_score;
-    $homeWon     = $match->isFinished() && $match->home_score > $match->away_score;
+    // Use ESPN's winner flag when available (handles pens/AET where scores are level)
+    $homeWinner  = $match->stats['home_winner'] ?? null;
+    if ($match->isFinished() && $homeWinner !== null) {
+        $isDraw  = false;
+        $homeWon = (bool) $homeWinner;
+    } else {
+        $isDraw  = $match->isFinished() && $match->home_score === $match->away_score;
+        $homeWon = $match->isFinished() && $match->home_score > $match->away_score;
+    }
+    $isPenalties = $match->isFinished() && $homeWinner !== null && $match->home_score === $match->away_score;
     $winnerEntry = $homeWon ? $homeEntry : $awayEntry;
     $winnerTeam  = $homeWon ? $match->home_team : $match->away_team;
 
     $resultData = $match->isFinished() ? json_encode([
         'isDraw'       => $isDraw,
+        'isPenalties'  => $isPenalties,
         'homeScore'    => $match->home_score,
         'awayScore'    => $match->away_score,
         'homeTeam'     => $match->home_team,

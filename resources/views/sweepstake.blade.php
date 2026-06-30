@@ -1396,7 +1396,7 @@ function sweepstake() {
                 {{-- Winner state --}}
                 <template x-if="result && !result.isDraw">
                     <div>
-                        <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--green); margin-bottom:20px;">Full Time</div>
+                        <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--green); margin-bottom:20px;" x-text="result?.isPenalties ? 'Won on Penalties' : 'Full Time'"></div>
 
                         <div style="position:relative; display:inline-block; margin-bottom:16px;">
                             <img :src="result.winnerAvatar"
